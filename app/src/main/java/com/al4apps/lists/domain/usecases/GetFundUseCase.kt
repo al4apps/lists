@@ -6,4 +6,6 @@ class GetFundUseCase(
     private val fundsRepository: FundsRepositoryImpl
 ) {
     suspend fun get(fundId: Int) = fundsRepository.getFundById(fundId)
+
+    fun flow(fundId: Int) = fundsRepository.fundByIdFlow(id = fundId)
 }

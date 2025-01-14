@@ -2,7 +2,8 @@
     <string name="app_name">Lists</string>
 
     <string name="fund_item_raised_text">собрано:</string>
-    <string name="fund_item_to_raise_text">из:</string>
+    <string name="fund_item_to_raise_text">цель:</string>
+    <string name="fund_item_sum_to_collect_text">осталось:</string>
 
     <string name="home_search_field_hint">Поиск списков</string>
     <string name="back_button_description">Назад</string>
@@ -14,9 +15,19 @@
     <string name="add_new_item_button_text">Добавить</string>
     <string name="new_list_base_name">Новый сбор</string>
 
-    <string name="lorem">Copyright 2020 The Android Open Source Project
 
-Licensed under the Apache License, Version 2.0 (the "License");
+    <string name="settings_button_content_description">Настройки</string>
+    <string name="fund_settings_need_to_raise_text">Нужно собрать:</string>
+    <string name="dialog_save_button_text">Сохранить</string>
+    <string name="dialog_cancel_button_text">Отмена</string>
+    <string name="add_item_button_content_description">Добавить</string>
+    <string name="add_new_member_dialog_title">Добавление</string>
+    <string name="edit_member_dialog_title">Изменение</string>
+    <string name="dialog_new_fund_title">Создать новый сбор</string>
+
+
+
+    <string name="lorem">Copyright 2020 The Android Open Source Project
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -26,11 +37,6 @@ Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
-limitations under the License.</string>
-    <string name="settings_button_content_description">Настройки</string>
-    <string name="fund_settings_need_to_raise_text">Нужно собрать:</string>
-    <string name="settings_dialog_save_button_text">Сохранить</string>
-    <string name="settings_dialog_cancel_button_text">Отмена</string>
-    <string name="add_item_button_content_description">Добавить</string>
-    <string name="add_new_member_dialog_title">Новый участник</string>
+limitations under the License.
+    Licensed under the Apache License, Version 2.0 (the "License");</string>
 </resources>

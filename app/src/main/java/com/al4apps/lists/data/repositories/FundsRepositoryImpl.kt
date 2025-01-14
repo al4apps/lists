@@ -27,6 +27,13 @@ class FundsRepositoryImpl(
         return fundsDao.getFundById(id).toFundModel(raised)
     }
 
+    override fun fundByIdFlow(id: Int): Flow<FundModel> {
+        return fundsDao.fundByIdFlow(id).map {
+            val raised = getFundRaisedSum(id)
+            it.toFundModel(raised)
+        }
+    }
+
     override fun allFunds(): Flow<List<FundModel>> {
         return fundsDao.allFunds().map {
             it.map { fund ->

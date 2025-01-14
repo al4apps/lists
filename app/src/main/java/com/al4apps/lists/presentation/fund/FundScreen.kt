@@ -2,6 +2,7 @@ package com.al4apps.lists.presentation.fund
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,9 +41,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -57,69 +63,80 @@ import com.al4apps.lists.presentation.home.RaisingText
 import com.al4apps.lists.presentation.home.SumRaisedText
 import com.al4apps.lists.presentation.home.SumToRaiseText
 import com.al4apps.lists.presentation.home.raisedFraction
+import com.al4apps.lists.ui.theme.Typography
 import com.al4apps.lists.ui.theme.fractionColor
 import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FundScreen(
     navController: NavController, listId: Int, viewModel: FundViewModel = koinViewModel()
 ) {
-    if (listId == NEW_LIST_ID) PrepareToNewFund(viewModel)
-    else viewModel.getFundInfo(listId)
-
-    val list = viewModel.listModel.collectAsState()
-    val fund: FundModel? = if (list.value is FundModel) list.value as FundModel
-    else null
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showAddMemberDialog by remember { mutableStateOf(false) }
+    var isCreatingNewFund by remember { mutableStateOf(false) }
+    var needToSave by remember { mutableStateOf(!listId.isNewList()) }
+    val baseListName = stringResource(R.string.new_list_base_name)
 
-    fund?.let { fundModel ->
-        FundSettingsDialog(
-            fundModel,
-            showSettingsDialog,
-            onDismiss = { showSettingsDialog = false },
+    val list = viewModel.listModel.collectAsState()
+
+    LaunchedEffect(Unit) {
+        if (listId.isNewList()) {
+            Timber.d("zzz listId = $listId")
+            viewModel.fetchNewFund(baseListName)
+            isCreatingNewFund = true
+            showSettingsDialog = true
+        } else {
+            Timber.d("zzz listId = $listId")
+            viewModel.getFundInfo(listId)
+            viewModel.getFundItems(listId)
+        }
+    }
+
+    if (list.value is FundModel) {
+        FundSettingsDialog(fund = (list.value as FundModel),
+            showDialog = showSettingsDialog,
+            isCreating = isCreatingNewFund,
+            onDismiss = {
+                showSettingsDialog = false
+                isCreatingNewFund = false
+            },
             onConfirm = { updatedFund ->
                 viewModel.updateFundModel(updatedFund)
+                needToSave = true
                 showSettingsDialog = false
-            })
+                isCreatingNewFund = false
+            }
+        )
     }
-    AddMemberDialog(
-        showDialog = showAddMemberDialog,
-        onAddClick = {
-            viewModel.addNewFundMember(it)
-            showAddMemberDialog = false
-        },
-        onDismiss = { showAddMemberDialog = false }
-    )
+
+    EditMemberDialog(showDialog = showAddMemberDialog, onSaveClick = {
+        viewModel.addNewFundMember(it)
+        needToSave = true
+        showAddMemberDialog = false
+    }, onDismiss = { showAddMemberDialog = false })
 
     // Box для создания полупрозрачного слоя
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-            floatingActionButton = {
-                AddItemFab(modifier = Modifier.padding(bottom = 26.dp)) {
-                    showAddMemberDialog = true
-                }
-            },
-            floatingActionButtonPosition = FabPosition.End,
-            topBar = {
-                val title = if (list.value is EmptyListModel) {
-                    stringResource((list.value as EmptyListModel).nameStr)
-                } else list.value.listName
-                ListTopBar(
-                    title = title,
-                    navController = navController,
-                    onSettingsClick = { showSettingsDialog = true })
-            },
-            content = { paddingValues ->
+        Scaffold(modifier = Modifier
+            .fillMaxSize()
+            .imePadding(), floatingActionButton = {
+            AddItemFab(modifier = Modifier.padding(bottom = 26.dp)) {
+                showAddMemberDialog = true
+            }
+        }, floatingActionButtonPosition = FabPosition.End, topBar = {
+            val title = if (list.value is EmptyListModel) {
+                stringResource((list.value as EmptyListModel).nameStr)
+            } else list.value.listName
 
-                FundContent(
-                    paddingValues, viewModel, list.value
-                )
-            })
+            ListTopBar(title = title,
+                navController = navController,
+                onSettingsClick = { showSettingsDialog = true })
+        }, content = { paddingValues ->
+            FundContent(
+                paddingValues, viewModel, list.value
+            )
+        })
 
         if (showSettingsDialog || showAddMemberDialog) {
             Box(
@@ -129,9 +146,17 @@ fun FundScreen(
             ) { }
         }
     }
+    DisposableEffect(Unit) {
+        onDispose {
+            if (needToSave.not()) {
+                viewModel.removeFund()
+            }
+        }
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private fun Int.isNewList(): Boolean = this == NEW_LIST_ID
+
 @Composable
 fun FundContent(
     paddingValues: PaddingValues,
@@ -155,20 +180,35 @@ fun FundContent(
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
             items(listItems.value) { model ->
+                var showEditMemberDialog by remember { mutableStateOf(false) }
+
                 ElevatedCard(
-                    onClick = { }, modifier = Modifier.padding(vertical = 4.dp)
+                    onClick = { showEditMemberDialog = true },
+                    modifier = Modifier.padding(vertical = 4.dp)
 
                 ) {
                     val nextPosition = listItems.value.indexOf(model) + 1
                     when (model) {
-                        is FundMemberModel -> FundItemLayout(
-                            model, nextPosition
-                        )
+                        is FundMemberModel -> {
+                            FundItemLayout(
+                                model, nextPosition
+                            )
+
+                            EditMemberDialog(
+                                member = model,
+                                showDialog = showEditMemberDialog,
+                                onSaveClick = {
+                                    viewModel.updateFundMember(it)
+                                    showEditMemberDialog = false
+                                },
+                                onDismiss = { showEditMemberDialog = false },
+                            )
+                        }
 
                         is EmptyFundItemModel -> {
-                            EmptyFundItemLayout(nextPosition) {
-                                viewModel.addNewFundMember(it)
-                            }
+                            EditFundItemLayout(nextPosition,
+                                onSaveClick = { viewModel.addNewFundMember(it) },
+                                onCancelClick = {})
                         }
                     }
                 }
@@ -181,9 +221,10 @@ fun FundContent(
 }
 
 @Composable
-fun AddMemberDialog(
+fun EditMemberDialog(
+    member: FundMemberModel? = null,
     showDialog: Boolean,
-    onAddClick: (member: FundMemberModel) -> Unit,
+    onSaveClick: (member: FundMemberModel) -> Unit,
     onDismiss: () -> Unit
 ) {
     if (showDialog) {
@@ -193,16 +234,39 @@ fun AddMemberDialog(
                     .fillMaxWidth()
                     .wrapContentHeight(),
             ) {
-                Column(
-                    modifier = Modifier
-                        .padding(vertical = 16.dp, horizontal = 8.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(stringResource(R.string.add_new_member_dialog_title))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    EmptyFundItemLayout { newMember ->
-                        onAddClick(newMember)
+                if (member == null) {
+                    Column(
+                        modifier = Modifier
+                            .padding(vertical = 16.dp, horizontal = 8.dp)
+                            .fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            stringResource(R.string.add_new_member_dialog_title),
+                            style = Typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        EditFundItemLayout(
+                            onSaveClick = { newMember ->
+                                onSaveClick(newMember)
+                            }, onCancelClick = onDismiss
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .padding(vertical = 16.dp, horizontal = 8.dp)
+                            .fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = stringResource(R.string.edit_member_dialog_title),
+                            style = Typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        EditFundItemLayout(
+                            member = member, onSaveClick = { newMember ->
+                                onSaveClick(newMember)
+                            }, onCancelClick = onDismiss
+                        )
                     }
                 }
             }
@@ -214,69 +278,97 @@ fun AddMemberDialog(
 fun FundSettingsDialog(
     fund: FundModel,
     showDialog: Boolean,
+    isCreating: Boolean = false,
     onConfirm: (fund: FundModel) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (showDialog) {
         Dialog(onDismissRequest = onDismiss) {
+            val focusRequester = remember { FocusRequester() }
             var name by remember { mutableStateOf(fund.name) }
             var sum by remember { mutableStateOf(fund.toRaise?.toMoneyInTextFieldString() ?: "") }
             var isFormValid by remember {
-                mutableStateOf(name != fund.name || !sum.isEqualSum(fund.toRaise))
+                mutableStateOf(isCreating || name != fund.name || !sum.isEqualSum(fund.toRaise))
+            }
+
+            LaunchedEffect(Unit) {
+                focusRequester.requestFocus()
             }
             ElevatedCard(modifier = Modifier.wrapContentSize()) {
                 Column(
                     modifier = Modifier
-                        .wrapContentWidth()
-                        .wrapContentHeight()
+                        .wrapContentSize()
                         .padding(16.dp),
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.Top
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text = stringResource(R.string.new_fund_name_field_label))
-                    SimpleTextField(
-                        name,
-                        hint = stringResource(R.string.new_fund_name_field_hint),
+                    if (isCreating) {
+                        Text(
+                            stringResource(R.string.dialog_new_fund_title),
+                            style = Typography.titleMedium
+                            )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    Column(
                         modifier = Modifier
-                            .widthIn(min = 80.dp)
                             .wrapContentWidth()
+                            .wrapContentHeight(),
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.Top
                     ) {
-                        name = it
-                        isFormValid = name != fund.name || !sum.isEqualSum(fund.toRaise)
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(stringResource(R.string.fund_settings_need_to_raise_text))
-                    SimpleTextField(
-                        text = sum, hint = "0", keyboardOptions = KeyboardOptions.Default.copy(
-                            keyboardType = KeyboardType.Decimal
-                        )
-                    ) { value ->
-                        sum = filterSumValue(value)
-                        isFormValid = name != fund.name || !sum.isEqualSum(fund.toRaise)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround
-                    ) {
-                        Button(
-                            onClick = {
-                                val fundModel = FundModel(
-                                    id = fund.id,
-                                    name = name,
-                                    toRaise = if (sum.isBlank() || sum.toCents() == 0L) null
-                                    else sum.toCents(),
-                                    raised = fund.raised,
-                                    timestamp = System.currentTimeMillis()
-                                )
-                                onConfirm(fundModel)
-                            },
-                            enabled = isFormValid
+                        Text(
+                            text = stringResource(R.string.new_fund_name_field_label),
+                            style = Typography.bodyMedium)
+                        AddSpacer(4)
+                        SimpleTextField(
+                            name,
+                            hint = stringResource(R.string.new_fund_name_field_hint),
+                            modifier = Modifier
+                                .widthIn(min = 80.dp)
+                                .wrapContentWidth()
+                                .focusRequester(focusRequester)
                         ) {
-                            Text(stringResource(R.string.settings_dialog_save_button_text))
+                            name = it
+                            isFormValid =
+                                isCreating || name != fund.name || !sum.isEqualSum(fund.toRaise)
                         }
-                        Button(onClick = { onDismiss() }) {
-                            Text(stringResource(R.string.settings_dialog_cancel_button_text))
+                        AddSpacer(16)
+                        Text(
+                            text = stringResource(R.string.fund_settings_need_to_raise_text),
+                            style = Typography.bodyMedium
+                        )
+                        AddSpacer(4)
+                        SimpleTextField(
+                            text = sum, hint = "0", keyboardOptions = KeyboardOptions.Default.copy(
+                                keyboardType = KeyboardType.Decimal
+                            )
+                        ) { value ->
+                            sum = filterSumValue(value)
+                            isFormValid =
+                                isCreating || name != fund.name || !sum.isEqualSum(fund.toRaise)
+                        }
+                        AddSpacer(8)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            Button(onClick = { onDismiss() }) {
+                                Text(stringResource(R.string.dialog_cancel_button_text))
+                            }
+                            Button(
+                                onClick = {
+                                    val fundModel = FundModel(
+                                        id = fund.id,
+                                        name = name,
+                                        toRaise = if (sum.isBlank() || sum.toCents() == 0L) null
+                                        else sum.toCents(),
+                                        raised = fund.raised,
+                                        timestamp = System.currentTimeMillis()
+                                    )
+                                    onConfirm(fundModel)
+                                }, enabled = isFormValid
+                            ) {
+                                Text(stringResource(R.string.dialog_save_button_text))
+                            }
                         }
                     }
                 }
@@ -288,14 +380,14 @@ fun FundSettingsDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListTopBar(
-//    scrollBehavior: TopAppBarScrollBehavior,
-    title: String,
-    navController: NavController,
-    onSettingsClick: () -> Unit
+    title: String, navController: NavController, onSettingsClick: () -> Unit
 ) {
-    TopAppBar(title = {
-        Text(title)
-    },
+    TopAppBar(
+        title = {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                Text(title, style = Typography.titleLarge, fontWeight = FontWeight.Medium)
+            }
+        },
         navigationIcon = {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(
@@ -310,32 +402,19 @@ fun ListTopBar(
                     contentDescription = stringResource(R.string.settings_button_content_description)
                 )
             }
-        }
-    )
-}
-
-@Composable
-private fun PrepareToNewFund(viewModel: FundViewModel) {
-    val fund = FundModel(
-        id = NEW_LIST_ID,
-        name = stringResource(R.string.new_list_base_name),
-        toRaise = null,
-        raised = 0,
-        timestamp = System.currentTimeMillis()
-    )
-    viewModel.prepareNewFund(fund)
+        })
 }
 
 @Composable
 fun FundState(fund: FundModel) {
+    var showSumToCollect by remember { mutableStateOf(false) }
     // Box for the background
-    Box(
-        modifier = Modifier
-            .height(32.dp)
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp)
-            .border(1.dp, fractionColor), contentAlignment = Alignment.CenterStart
-    ) {
+    Box(modifier = Modifier
+        .height(32.dp)
+        .fillMaxWidth()
+        .clickable { showSumToCollect = !showSumToCollect }
+        .padding(horizontal = 8.dp)
+        .border(1.dp, fractionColor), contentAlignment = Alignment.CenterStart) {
         // Box for the raised part
         Box(
             modifier = Modifier
@@ -353,8 +432,15 @@ fun FundState(fund: FundModel) {
 
             SumRaisedText(fund.raised)
             fund.toRaise?.let { toRaise ->
-                RaisingText(stringResource(R.string.fund_item_to_raise_text))
-                SumToRaiseText(toRaise, modifier = Modifier.padding(end = 8.dp))
+                if (showSumToCollect) {
+                    RaisingText(stringResource(R.string.fund_item_sum_to_collect_text))
+                    SumToRaiseText(
+                        maxOf(0L, toRaise - fund.raised), modifier = Modifier.padding(end = 8.dp)
+                    )
+                } else {
+                    RaisingText(stringResource(R.string.fund_item_to_raise_text))
+                    SumToRaiseText(toRaise, modifier = Modifier.padding(end = 8.dp))
+                }
             }
         }
     }

@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.sp
 import com.al4apps.lists.R
 import com.al4apps.lists.domain.Constants
 import com.al4apps.lists.domain.models.FundMemberModel
+import com.al4apps.lists.ui.theme.Typography
 import com.al4apps.lists.ui.theme.greenText
-import com.al4apps.lists.ui.theme.greenText2
 
 @Composable
 fun FundItemLayout(item: FundMemberModel, position: Int) {
@@ -124,10 +124,17 @@ fun FundItemLayout(item: FundMemberModel, position: Int) {
 }
 
 @Composable
-fun EmptyFundItemLayout(position: Int? = null, onAddClick: (item: FundMemberModel) -> Unit) {
-    var nameText by remember { mutableStateOf("") }
-    var commentText by remember { mutableStateOf("") }
-    var sumText by remember { mutableStateOf("") }
+fun EditFundItemLayout(
+    position: Int? = null,
+    member: FundMemberModel? = null,
+    onSaveClick: (item: FundMemberModel) -> Unit,
+    onCancelClick: () -> Unit
+) {
+    var nameText by remember { mutableStateOf(member?.name ?: "") }
+    var commentText by remember { mutableStateOf(member?.comment ?: "") }
+    var sumText by remember {
+        mutableStateOf(member?.sum?.toMoneyInTextFieldString() ?: "")
+    }
     val nameHint = stringResource(id = R.string.new_fund_item_name_field_hint)
     val commentHint = stringResource(id = R.string.new_fund_item_comment_field_hint)
     val sumHint = stringResource(id = R.string.new_fund_item_sum_field_hint)
@@ -151,7 +158,11 @@ fun EmptyFundItemLayout(position: Int? = null, onAddClick: (item: FundMemberMode
                     .padding(top = 8.dp, end = 6.dp),
                 contentAlignment = Alignment.TopCenter
             ) {
-                Text("$position.", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "$position.",
+                    style = Typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
         // Name, comment, sum, button column
@@ -174,7 +185,11 @@ fun EmptyFundItemLayout(position: Int? = null, onAddClick: (item: FundMemberMode
                     }
                 }
 
-                Column(modifier = Modifier.weight(0.4f).padding(start = 4.dp)) {
+                Column(
+                    modifier = Modifier
+                        .weight(0.4f)
+                        .padding(start = 4.dp)
+                ) {
                     SimpleTextField(
                         sumText,
                         sumHint,
@@ -197,47 +212,78 @@ fun EmptyFundItemLayout(position: Int? = null, onAddClick: (item: FundMemberMode
 
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Button(
-                onClick = {
-                    onAddClick(
-                        FundMemberModel(
-                            id = Constants.ID_NEW_ITEM,
-                            fundId = Constants.NEW_LIST_ID,
-                            name = nameText,
-                            sum = sumText.toCents(),
-                            comment = commentText.ifBlank { null },
-                            System.currentTimeMillis()
+            if (member != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Button(
+                        onClick = { onCancelClick() },
+                        modifier = Modifier
+                            .wrapContentWidth()
+                            .padding(top = 8.dp)
+                            .height(40.dp)
+                    ) {
+                        Text(stringResource(R.string.dialog_cancel_button_text))
+                    }
+                    Button(
+                        onClick = {
+                            onSaveClick(
+                                FundMemberModel(
+                                    id = member.id,
+                                    fundId = member.fundId,
+                                    name = nameText,
+                                    sum = sumText.toCents(),
+                                    comment = commentText.ifBlank { null },
+                                    System.currentTimeMillis()
+                                )
+                            )
+                        },
+                        enabled = isFormValid,
+                        modifier = Modifier
+                            .wrapContentWidth()
+                            .padding(top = 8.dp)
+                            .height(40.dp)
+                    ) {
+                        Text(stringResource(R.string.dialog_save_button_text))
+                    }
+                }
+            } else {
+                Button(
+                    onClick = {
+                        onSaveClick(
+                            FundMemberModel(
+                                id = Constants.ID_NEW_ITEM,
+                                fundId = Constants.NEW_LIST_ID,
+                                name = nameText,
+                                sum = sumText.toCents(),
+                                comment = commentText.ifBlank { null },
+                                System.currentTimeMillis()
+                            )
                         )
-                    )
-                },
-                enabled = isFormValid,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .height(40.dp)
-            ) {
-                val color = if (isFormValid) greenText2 else Color.Unspecified
-                Text(stringResource(R.string.add_new_item_button_text), color = color)
+                    },
+                    enabled = isFormValid,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .height(40.dp)
+                ) {
+                    Text(stringResource(R.string.add_new_item_button_text))
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
         }
-        // Sum column
-//        Column(
-//            modifier = Modifier
-//                .weight(0.4f)
-//                .padding(end = 4.dp, start = 4.dp),
-//            verticalArrangement = Arrangement.Top,
-//            horizontalAlignment = Alignment.CenterHorizontally
-//        ) {
-//
-//        }
     }
 }
 
 @Composable
 @Preview(showBackground = true)
 fun EmptyFundItemModelPreview() {
-    EmptyFundItemLayout() { }
+    EditFundItemLayout(
+        member = FundMemberModel(0, 0, "Test", 50000L, comment = "", 11561313L),
+        onSaveClick = {},
+        onCancelClick = {}
+    )
 }
 
 fun filterSumValue(newValue: String): String {
@@ -285,6 +331,11 @@ fun SimpleTextField(
             errorIndicatorColor = Color.Transparent
         )
     )
+}
+
+@Composable
+fun AddSpacer(dp: Int, modifier: Modifier = Modifier) {
+    Spacer(modifier = modifier.height(dp.dp))
 }
 
 fun String.toCents(): Long {

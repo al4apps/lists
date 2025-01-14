@@ -15,7 +15,10 @@ interface FundsDao {
     @Query("SELECT * FROM ${FundDbModel.TABLE_NAME} WHERE ${FundDbModel.ID_NAME} = :id")
     suspend fun getFundById(id: Int): FundDbModel
 
-    @Query("SELECT * FROM ${FundDbModel.TABLE_NAME}")
+    @Query("SELECT * FROM ${FundDbModel.TABLE_NAME} WHERE ${FundDbModel.ID_NAME} = :id")
+    fun fundByIdFlow(id: Int): Flow<FundDbModel>
+
+    @Query("SELECT * FROM ${FundDbModel.TABLE_NAME} ORDER BY ${FundDbModel.TIMESTAMP} DESC")
     fun allFunds(): Flow<List<FundDbModel>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

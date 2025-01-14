@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -26,7 +27,9 @@ import androidx.compose.ui.unit.sp
 import com.al4apps.lists.R
 import com.al4apps.lists.domain.models.FundModel
 import com.al4apps.lists.presentation.fund.toMoneyString
+import com.al4apps.lists.ui.theme.Typography
 import com.al4apps.lists.ui.theme.fractionColor
+import com.al4apps.lists.ui.theme.graphikFont
 import com.al4apps.lists.ui.theme.greenText2
 
 
@@ -65,10 +68,12 @@ fun FundTileLayout(fund: FundModel) {
                 NameText(fund.name)
                 Spacer(modifier = Modifier.height(8.dp))
                 RaisingText(stringResource(R.string.fund_item_raised_text))
+                Spacer(modifier = Modifier.height(4.dp))
                 SumRaisedText(fund.raised)
                 fund.toRaise?.let { toRaise ->
                     Spacer(modifier = Modifier.height(4.dp))
                     RaisingText(stringResource(R.string.fund_item_to_raise_text))
+                    Spacer(modifier = Modifier.height(4.dp))
                     SumToRaiseText(toRaise, Modifier.padding(start = 8.dp))
                 }
             }
@@ -137,8 +142,7 @@ fun SumRaisedText(raisedSum: Long) {
     Text(
         modifier = Modifier.padding(start = 8.dp),
         text = raisedSum.toMoneyString(false),
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Medium,
+        style = Typography.bodyMedium,
         color = if (raisedSum > 0) greenText2
         else Color.Unspecified
     )
@@ -160,8 +164,7 @@ fun SumToRaiseText(toRaise: Long, modifier: Modifier = Modifier) {
     Text(
         modifier = modifier,
         text = toRaise.toMoneyString(false),
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Medium,
+        style = Typography.bodyMedium,
         color = Color.Red
     )
 }
@@ -170,7 +173,7 @@ fun SumToRaiseText(toRaise: Long, modifier: Modifier = Modifier) {
 fun RaisingText(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
-        fontSize = 12.sp,
+        style = Typography.bodyMedium,
         color = Color.DarkGray,
         modifier = modifier
     )
@@ -180,8 +183,7 @@ fun RaisingText(text: String, modifier: Modifier = Modifier) {
 private fun NameText(name: String, modifier: Modifier = Modifier) {
     Text(
         text = name,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.SemiBold,
+        style = Typography.bodyLarge,
         modifier = modifier
     )
 }
