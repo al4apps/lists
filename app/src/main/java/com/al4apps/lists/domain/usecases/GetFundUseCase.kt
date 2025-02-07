@@ -1,9 +1,9 @@
 package com.al4apps.lists.domain.usecases
 
-import com.al4apps.lists.data.repositories.FundsRepositoryImpl
+import com.al4apps.lists.domain.repositories.FundsRepository
 
 class GetFundUseCase(
-    private val fundsRepository: FundsRepositoryImpl
+    private val fundsRepository: FundsRepository
 ) {
     suspend fun get(fundId: Int) = fundsRepository.getFundById(fundId)
 

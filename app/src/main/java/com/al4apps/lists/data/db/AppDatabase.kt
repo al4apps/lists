@@ -4,11 +4,13 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.al4apps.lists.data.dbmodels.FundDbModel
 import com.al4apps.lists.data.dbmodels.FundMemberDbModel
+import com.al4apps.lists.data.dbmodels.FundOptionsDb
 
 @Database(
     entities = [
         FundMemberDbModel::class,
         FundDbModel::class,
+        FundOptionsDb::class
     ],
     version = AppDatabase.DB_VERSION,
     exportSchema = false

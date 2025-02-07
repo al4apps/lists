@@ -1,6 +1,8 @@
 package com.al4apps.lists.presentation.home
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -40,6 +42,7 @@ import androidx.navigation.NavController
 import com.al4apps.lists.R
 import com.al4apps.lists.domain.Constants.NEW_LIST_ID
 import com.al4apps.lists.domain.models.FundModel
+import com.al4apps.lists.domain.models.ListModel
 import com.al4apps.lists.navigation.AppScreens
 import org.koin.androidx.compose.koinViewModel
 
@@ -84,7 +87,7 @@ fun HomeContent(
             SearchField(Modifier.weight(1f)) {}
             SwitcherIcon(isTileMode.value) { viewModel.switchTileMode() }
         }
-        ListOfLists(models, isTileMode.value) {
+        ListOfLists(models.value, isTileMode.value) {
             navController.navigate(AppScreens.List.withArgs(it))
         }
     }
@@ -92,7 +95,7 @@ fun HomeContent(
 
 @Composable
 private fun ListOfLists(
-    list: State<List<FundModel>>,
+    list: List<ListModel>,
     isTileMode: Boolean,
     onClick: (id: Int) -> Unit
 ) {
@@ -104,14 +107,16 @@ private fun ListOfLists(
                 .padding(horizontal = 8.dp),
             contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
         ) {
-            items(list.value) { fundModel ->
-                ElevatedCard(
-                    modifier = Modifier
-                        .padding(8.dp),
-                    onClick = {
-                        onClick(fundModel.id)
-                    }) {
-                    FundTileLayout(fundModel)
+            items(list) { model ->
+                if (model is FundModel) {
+                    ElevatedCard(
+                        modifier = Modifier
+                            .padding(8.dp),
+                        onClick = {
+                            onClick(model.id)
+                        }) {
+                        FundTileLayout(model)
+                    }
                 }
             }
         }
@@ -122,13 +127,23 @@ private fun ListOfLists(
                 .padding(horizontal = 8.dp),
             contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
         ) {
-            items(list.value) { fundModel ->
-                ElevatedCard(
-                    modifier = Modifier
-                        .padding(8.dp),
-                    onClick = { onClick(fundModel.id) }
-                ) {
-                    FundRowLayout(fundModel)
+            items(list) { model ->
+                if (model is FundModel) {
+                    ElevatedCard(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { onClick(model.id) },
+                                    onLongPress = {}
+                                )
+                            },
+                    ) {
+                        // Box для визуальной обработки onLongPress
+                        Box(contentAlignment = Alignment.Center) {
+                            FundRowLayout(model)
+                        }
+                    }
                 }
             }
         }

@@ -6,12 +6,17 @@ import com.al4apps.lists.data.db.FundMembersDao
 import com.al4apps.lists.data.db.FundsDao
 import com.al4apps.lists.data.repositories.FundMembersRepositoryImpl
 import com.al4apps.lists.data.repositories.FundsRepositoryImpl
+import com.al4apps.lists.domain.repositories.FundMembersRepository
+import com.al4apps.lists.domain.repositories.FundsRepository
 import com.al4apps.lists.domain.usecases.AddNewFundMemberUseCase
 import com.al4apps.lists.domain.usecases.AddNewFundUseCase
+import com.al4apps.lists.domain.usecases.AddNewFundWithOptionsUseCase
 import com.al4apps.lists.domain.usecases.GetAllFundsUseCase
 import com.al4apps.lists.domain.usecases.GetFundMembersUseCase
+import com.al4apps.lists.domain.usecases.GetFundOptionsUseCase
 import com.al4apps.lists.domain.usecases.GetFundUseCase
 import com.al4apps.lists.domain.usecases.UpdateFundMemberUseCase
+import com.al4apps.lists.domain.usecases.UpdateFundOptionsUseCase
 import com.al4apps.lists.domain.usecases.UpdateFundUseCase
 import com.al4apps.lists.presentation.home.HomeViewModel
 import com.al4apps.lists.presentation.fund.FundViewModel
@@ -31,6 +36,8 @@ val appModule = module {
             updateFundMemberUseCase = get(),
             updateFundUseCase = get(),
             addNewFundUseCase = get(),
+            getFundOptionsUseCase = get(),
+            updateFundOptionsUseCase = get()
         )
     }
 
@@ -58,6 +65,15 @@ val useCasesModule = module {
     factory<UpdateFundMemberUseCase> {
         UpdateFundMemberUseCase(fundMemberRepository = get())
     }
+    factory<GetFundOptionsUseCase> {
+        GetFundOptionsUseCase(fundsRepository = get())
+    }
+    factory<UpdateFundOptionsUseCase> {
+        UpdateFundOptionsUseCase(fundsRepository = get())
+    }
+    factory<AddNewFundWithOptionsUseCase> {
+        AddNewFundWithOptionsUseCase(fundsRepository = get())
+    }
 }
 
 val dbModule = module {
@@ -81,11 +97,12 @@ val dbModule = module {
 
 val dataModule = module {
 
-    single<FundsRepositoryImpl> {
+    single<FundsRepository> {
         FundsRepositoryImpl(fundsDao = get(), membersDao = get())
     }
 
-    single<FundMembersRepositoryImpl> {
+    single<FundMembersRepository> {
         FundMembersRepositoryImpl(membersDao = get())
     }
 }
+

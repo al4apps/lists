@@ -23,6 +23,4 @@ interface FundMembersDao {
 
     @Query("DELETE FROM ${FundMemberDbModel.TABLE_NAME} WHERE ${FundMemberDbModel.ID_NAME} = :fundMemberId")
     suspend fun deleteFundMember(fundMemberId: Int)
-
-
 }

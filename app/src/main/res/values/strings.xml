@@ -11,7 +11,7 @@
     <string name="new_fund_item_name_field_hint">Имя</string>
     <string name="new_fund_name_field_label">Название:</string>
     <string name="new_fund_name_field_hint">Название</string>
-    <string name="new_fund_item_sum_field_hint">0.00</string>
+    <string name="new_fund_item_sum_field_hint">Сумма</string>
     <string name="add_new_item_button_text">Добавить</string>
     <string name="new_list_base_name">Новый сбор</string>
 
@@ -39,4 +39,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
     Licensed under the Apache License, Version 2.0 (the "License");</string>
+    <string name="dialog_new_fund_add_members_label">Добавить участников:</string>
+    <string name="dialog_new_fund_need_to_divide_label">Разделить на всех участников</string>
 </resources>

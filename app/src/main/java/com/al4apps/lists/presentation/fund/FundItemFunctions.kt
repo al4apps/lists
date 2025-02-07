@@ -1,6 +1,8 @@
 package com.al4apps.lists.presentation.fund
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,12 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -184,15 +185,16 @@ fun EditFundItemLayout(
                         isFormValid = nameText.isNotBlank() && sumText.isNotBlank()
                     }
                 }
-
+                // Sum
                 Column(
                     modifier = Modifier
-                        .weight(0.4f)
+                        .weight(0.5f)
                         .padding(start = 4.dp)
                 ) {
                     SimpleTextField(
                         sumText,
                         sumHint,
+                        singleLine = true,
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                     ) { newValue ->
                         sumText = filterSumValue(newValue)
@@ -201,7 +203,7 @@ fun EditFundItemLayout(
 
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Column(modifier = Modifier.fillMaxWidth()) {
                 SimpleTextField(
                     commentText,
@@ -211,7 +213,7 @@ fun EditFundItemLayout(
                 ) { commentText = it }
 
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             if (member != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -306,35 +308,41 @@ fun filterSumValue(newValue: String): String {
 fun SimpleTextField(
     text: String,
     hint: String,
+    singleLine: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     modifier: Modifier = Modifier,
-    textStyle: TextStyle = TextStyle.Default,
+    textStyle: TextStyle = Typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
     onValueChange: (String) -> Unit
 ) {
-    TextField(
+    BasicTextField(
         value = text,
         onValueChange = { onValueChange(it) },
         modifier = modifier,
-        placeholder = { Text(hint, style = textStyle) },
-        singleLine = true,
-        shape = RoundedCornerShape(10.dp),
+        singleLine = singleLine,
         keyboardOptions = keyboardOptions.copy(
             autoCorrectEnabled = true,
             showKeyboardOnFocus = true,
             capitalization = KeyboardCapitalization.Words
         ),
         textStyle = textStyle,
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            errorIndicatorColor = Color.Transparent
-        )
+        decorationBox = { innerTextField ->
+            Box(
+                modifier = Modifier
+                    .background(Color.Transparent, RoundedCornerShape(20.dp))
+                    .border(1.dp, Color.Gray, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                if (text.isEmpty()) {
+                    Text(hint, style = textStyle, color = Color.Gray)
+                }
+                innerTextField()
+            }
+        },
     )
 }
 
 @Composable
-fun AddSpacer(dp: Int, modifier: Modifier = Modifier) {
+fun AddSpace(dp: Int, modifier: Modifier = Modifier) {
     Spacer(modifier = modifier.height(dp.dp))
 }
 

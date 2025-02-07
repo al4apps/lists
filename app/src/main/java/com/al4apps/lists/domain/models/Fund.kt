@@ -9,7 +9,6 @@ interface Fund {
     var toRaise: Long?
     var raised: Long
     var timestamp: Long
-
 }
 
 data class FundModel(
@@ -18,11 +17,25 @@ data class FundModel(
     override var toRaise: Long?,
     override var raised: Long,
     override var timestamp: Long
-) : Fund, ListModel(name)
+) : Fund, ListModel()
+
+interface FundOptions {
+    val fundId: Int
+    var membersCount: Int
+    var raisedSum: Long
+    var needToDivide: Boolean
+}
+
+data class FundOptionsModel(
+    override val fundId: Int,
+    override var membersCount: Int,
+    override var raisedSum: Long,
+    override var needToDivide: Boolean = false,
+) : FundOptions
 
 data class EmptyListModel(
     @StringRes
     val nameStr: Int = R.string.new_list_base_name
-) : ListModel("")
+) : ListModel()
 
-sealed class ListModel(val listName: String)
+sealed class ListModel()

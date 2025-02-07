@@ -8,16 +8,20 @@ import com.al4apps.lists.domain.models.EmptyListModel
 import com.al4apps.lists.domain.models.FundMemberModel
 import com.al4apps.lists.domain.models.FundModel
 import com.al4apps.lists.domain.models.ListItemModel
-import com.al4apps.lists.domain.models.ListModel
 import com.al4apps.lists.domain.usecases.AddNewFundMemberUseCase
 import com.al4apps.lists.domain.usecases.AddNewFundUseCase
 import com.al4apps.lists.domain.usecases.GetFundMembersUseCase
+import com.al4apps.lists.domain.usecases.GetFundOptionsUseCase
 import com.al4apps.lists.domain.usecases.GetFundUseCase
 import com.al4apps.lists.domain.usecases.UpdateFundMemberUseCase
+import com.al4apps.lists.domain.usecases.UpdateFundOptionsUseCase
 import com.al4apps.lists.domain.usecases.UpdateFundUseCase
+import com.al4apps.lists.presentation.models.FundUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -27,12 +31,14 @@ open class FundViewModel(
     private val addNewFundMemberUseCase: AddNewFundMemberUseCase,
     private val updateFundMemberUseCase: UpdateFundMemberUseCase,
     private val updateFundUseCase: UpdateFundUseCase,
-    private val addNewFundUseCase: AddNewFundUseCase
+    private val addNewFundUseCase: AddNewFundUseCase,
+    private val getFundOptionsUseCase: GetFundOptionsUseCase,
+    private val updateFundOptionsUseCase: UpdateFundOptionsUseCase
 ) : ViewModel() {
     private var fundId: Int = NEW_LIST_ID
     private val emptyListModel = EmptyListModel()
 
-    private val _listModel = MutableStateFlow<ListModel>(emptyListModel)
+    private val _listModel = MutableStateFlow<FundUi?>(null)
     val listModel = _listModel.asStateFlow()
 
     private val _items = MutableStateFlow<List<ListItemModel>>(emptyList())
@@ -42,19 +48,21 @@ open class FundViewModel(
         fundId = id
         viewModelScope.launch {
             try {
-                _listModel.value = getFundUseCase.get(id)
+                val options = getFundOptionsUseCase.get(id)
+                val fund = getFundUseCase.get(id)
+                _listModel.value = FundUi(fund, options)
             } catch (e: Exception) {
                 Timber.d(e)
-                _listModel.value = emptyListModel
+                _listModel.value = null
             }
         }
     }
 
-    fun updateFundModel(fund: FundModel) {
+    fun updateFundModel(fundUi: FundUi) {
         viewModelScope.launch {
             try {
-                updateFundUseCase.update(fund)
-                getFundInfo(fund.id)
+                updateFundUseCase.update(fundUi.fundModel, fundUi.fundOptions)
+                getFundInfo(fundUi.fundModel.id)
             } catch (t: Throwable) {
                 Timber.d(t)
             }
@@ -73,16 +81,12 @@ open class FundViewModel(
     }
 
     fun getFundItems(fundId: Int) {
-        viewModelScope.launch {
-            try {
-                getFundMembersUseCase.flow(fundId).collectLatest { list ->
-                    Timber.d("zzz $list")
-                    _items.value = list.ifEmpty { listOf(EmptyFundItemModel) }
-                }
-            } catch (t: Throwable) {
-                Timber.d(t)
+        getFundMembersUseCase.flow(fundId)
+            .catch { Timber.d(it) }
+            .onEach { list ->
+                _items.value = list.ifEmpty { listOf(EmptyFundItemModel) }
             }
-        }
+            .launchIn(viewModelScope)
     }
 
     fun addNewFundMember(member: FundMemberModel) {
@@ -96,18 +100,11 @@ open class FundViewModel(
         }
     }
 
-    fun fetchNewFund(baseName: String) {
+    fun fetchNewFund(fund: FundUi) {
         viewModelScope.launch {
             try {
-                val fund = FundModel(
-                    id = NEW_LIST_ID,
-                    name = baseName,
-                    toRaise = null,
-                    raised = 0,
-                    timestamp = System.currentTimeMillis()
-                )
-                fundId = addNewFundUseCase.invoke(fund)
-                Timber.d("zzz fundId = $fundId")
+                fundId = addNewFundUseCase.invoke(fund.fundModel)
+                updateFundOptionsUseCase.invoke(fund.fundOptions.copy(fundId = fundId))
                 getFundInfo(fundId)
                 getFundItems(fundId)
             } catch (t: Throwable) {
@@ -131,6 +128,16 @@ open class FundViewModel(
         viewModelScope.launch {
             try {
                 updateFundUseCase.delete(fundId)
+            } catch (t: Throwable) {
+                Timber.d(t)
+            }
+        }
+    }
+
+    fun addNewFund(fund: FundModel) {
+        viewModelScope.launch {
+            try {
+                addNewFundUseCase.invoke(fund)
             } catch (t: Throwable) {
                 Timber.d(t)
             }
