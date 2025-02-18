@@ -1,26 +1,32 @@
 package com.al4apps.lists.presentation.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -30,6 +36,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,12 +45,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.al4apps.lists.R
 import com.al4apps.lists.domain.Constants.NEW_LIST_ID
 import com.al4apps.lists.domain.models.FundModel
 import com.al4apps.lists.domain.models.ListModel
 import com.al4apps.lists.navigation.AppScreens
+import com.al4apps.lists.presentation.fund.AddSpace
+import com.al4apps.lists.ui.theme.Typography
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -71,6 +81,11 @@ fun HomeContent(
 ) {
     val models = viewModel.models.collectAsState(initial = emptyList())
     val isTileMode = viewModel.isTileModeFlow.collectAsState()
+    val isChoiceMode = viewModel.isChoiceModeFlow.collectAsState()
+    val selectedIds = viewModel.selectedIds.collectAsState()
+    val showDeletionDialog = rememberSaveable {
+        mutableStateOf(false)
+    }
 
     Column(
         modifier = Modifier
@@ -84,12 +99,34 @@ fun HomeContent(
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SearchField(Modifier.weight(1f)) {}
-            SwitcherIcon(isTileMode.value) { viewModel.switchTileMode() }
+            SearchField(Modifier.weight(0.9f)) {}
+            SwitcherIcon(isTileMode.value, isChoiceMode.value, Modifier.weight(0.1f)) {
+                if (!isChoiceMode.value) viewModel.switchTileMode()
+                else showDeletionDialog.value = true
+            }
         }
-        ListOfLists(models.value, isTileMode.value) {
-            navController.navigate(AppScreens.List.withArgs(it))
-        }
+        ListOfLists(
+            list = models.value,
+            isTileMode = isTileMode.value,
+            isChoiceMode = isChoiceMode.value,
+            selectedIds = selectedIds.value,
+            onClick = { id ->
+                if (!isChoiceMode.value) navController.navigate(AppScreens.List.withArgs(id))
+                else viewModel.addToChoice(id)
+            },
+            onLongPress = { id ->
+                if (!isChoiceMode.value) viewModel.switchChoiceMode(id)
+            }
+        )
+
+        DeleteConfirmationDialog(
+            showDialog = showDeletionDialog.value,
+            onDismiss = { showDeletionDialog.value = false },
+            onDeleteClick = {
+                viewModel.deleteSelectedFunds()
+                showDeletionDialog.value = false
+            }
+        )
     }
 }
 
@@ -97,7 +134,10 @@ fun HomeContent(
 private fun ListOfLists(
     list: List<ListModel>,
     isTileMode: Boolean,
-    onClick: (id: Int) -> Unit
+    isChoiceMode: Boolean,
+    selectedIds: List<Int>,
+    onClick: (id: Int) -> Unit,
+    onLongPress: (id: Int) -> Unit,
 ) {
     if (isTileMode) {
         LazyVerticalGrid(
@@ -109,13 +149,26 @@ private fun ListOfLists(
         ) {
             items(list) { model ->
                 if (model is FundModel) {
+                    val isSelected = isChoiceMode && selectedIds.contains(model.id)
                     ElevatedCard(
                         modifier = Modifier
-                            .padding(8.dp),
-                        onClick = {
-                            onClick(model.id)
-                        }) {
-                        FundTileLayout(model)
+                            .padding(8.dp)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { onClick(model.id) },
+                                    onLongPress = { onLongPress(model.id) }
+                                )
+                            }) {
+                        // Box для визуальной обработки onLongPress
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.background(
+                                color = if (isSelected) Color.LightGray
+                                else Color.Unspecified
+                            )
+                        ) {
+                            FundTileLayout(model)
+                        }
                     }
                 }
             }
@@ -129,18 +182,26 @@ private fun ListOfLists(
         ) {
             items(list) { model ->
                 if (model is FundModel) {
+                    val isSelected = isChoiceMode && selectedIds.contains(model.id)
+
                     ElevatedCard(
                         modifier = Modifier
                             .padding(8.dp)
                             .pointerInput(Unit) {
                                 detectTapGestures(
                                     onTap = { onClick(model.id) },
-                                    onLongPress = {}
+                                    onLongPress = { onLongPress(model.id) }
                                 )
                             },
                     ) {
                         // Box для визуальной обработки onLongPress
-                        Box(contentAlignment = Alignment.Center) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.background(
+                                color = if (isSelected) Color.LightGray
+                                else Color.Unspecified
+                            )
+                        ) {
                             FundRowLayout(model)
                         }
                     }
@@ -157,6 +218,47 @@ fun AddItemFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
             painter = painterResource(id = R.drawable.plus),
             contentDescription = null
         )
+    }
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    showDialog: Boolean,
+    onDeleteClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (showDialog) {
+        Dialog(onDismissRequest = { onDismiss() }) {
+            ElevatedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(vertical = 16.dp, horizontal = 16.dp)
+                        .fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        stringResource(R.string.home_confirm_deletion_dialog_text),
+                        style = Typography.titleMedium
+                    )
+                    AddSpace(24)
+                    Row {
+                        OutlinedButton(
+                            modifier = Modifier.weight(1f).height(36.dp),
+                            onClick = { onDismiss() }
+                        ) {
+                            Text(stringResource(R.string.dialog_cancel_button_text))
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Button(onClick = { onDeleteClick() }, Modifier.weight(1f).height(36.dp)) {
+                            Text(stringResource(R.string.dialog_delete_button_text))
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -203,16 +305,23 @@ fun SearchField(
 @Composable
 fun SwitcherIcon(
     isTileMode: Boolean,
+    isChoiceMode: Boolean,
+    modifier: Modifier = Modifier,
     onIconClick: () -> Unit,
 ) {
-    val painterId = if (isTileMode) R.drawable.rows
-    else R.drawable.tile
+    val painterId = if (isChoiceMode) R.drawable.trash
+    else {
+        if (isTileMode) R.drawable.rows
+        else R.drawable.tile
+    }
     Icon(
         painter = painterResource(painterId),
         contentDescription = null,
-        modifier = Modifier
-            .wrapContentWidth()
-            .padding(start = 12.dp)
+        tint = Color.DarkGray,
+        modifier = modifier
+            .fillMaxWidth()
+            .size(24.dp)
+            .padding(start = 8.dp)
             .clickable {
                 onIconClick()
             }

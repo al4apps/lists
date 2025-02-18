@@ -26,7 +26,7 @@ import org.koin.dsl.module
 val appModule = module {
 
     viewModel<HomeViewModel> {
-        HomeViewModel(getAllFundsUseCase = get())
+        HomeViewModel(getAllFundsUseCase = get(), updateFundUseCase = get())
     }
     viewModel<FundViewModel> {
         FundViewModel(

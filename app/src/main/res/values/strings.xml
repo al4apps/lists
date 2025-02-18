@@ -41,4 +41,6 @@ limitations under the License.
     Licensed under the Apache License, Version 2.0 (the "License");</string>
     <string name="dialog_new_fund_add_members_label">Добавить участников:</string>
     <string name="dialog_new_fund_need_to_divide_label">Разделить на всех участников</string>
+    <string name="home_confirm_deletion_dialog_text">Удалить выбранные элементы?</string>
+    <string name="dialog_delete_button_text">Удалить</string>
 </resources>
