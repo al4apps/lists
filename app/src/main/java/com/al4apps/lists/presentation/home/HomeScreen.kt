@@ -99,7 +99,9 @@ fun HomeContent(
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SearchField(Modifier.weight(0.9f)) {}
+            SearchField(Modifier.weight(0.9f)) { text ->
+                viewModel.searchLists(text)
+            }
             SwitcherIcon(isTileMode.value, isChoiceMode.value, Modifier.weight(0.1f)) {
                 if (!isChoiceMode.value) viewModel.switchTileMode()
                 else showDeletionDialog.value = true
