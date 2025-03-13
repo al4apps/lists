@@ -1,6 +1,6 @@
 [versions]
 accompanistGlide = "0.15.0"
-agp = "8.8.0"
+agp = "8.8.2"
 constraintlayoutCompose = "1.1.0"
 koinAndroidxCompose = "2.2.3"
 kotlin = "2.0.0"

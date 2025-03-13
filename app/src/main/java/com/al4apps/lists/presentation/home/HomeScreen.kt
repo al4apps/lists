@@ -1,6 +1,7 @@
 package com.al4apps.lists.presentation.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FabPosition
@@ -29,13 +32,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
@@ -52,8 +53,11 @@ import com.al4apps.lists.domain.Constants.NEW_LIST_ID
 import com.al4apps.lists.domain.models.FundModel
 import com.al4apps.lists.domain.models.ListModel
 import com.al4apps.lists.navigation.AppScreens
-import com.al4apps.lists.presentation.fund.AddSpace
+import com.al4apps.lists.presentation.fund.AddSpaceVer
 import com.al4apps.lists.ui.theme.Typography
+import com.al4apps.lists.ui.theme.buttonHeight
+import com.al4apps.lists.ui.theme.searchHintStyle
+import com.al4apps.lists.ui.theme.textFieldHeight
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -245,16 +249,23 @@ fun DeleteConfirmationDialog(
                         stringResource(R.string.home_confirm_deletion_dialog_text),
                         style = Typography.titleMedium
                     )
-                    AddSpace(24)
+                    AddSpaceVer(24)
                     Row {
                         OutlinedButton(
-                            modifier = Modifier.weight(1f).height(36.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(buttonHeight),
                             onClick = { onDismiss() }
                         ) {
                             Text(stringResource(R.string.dialog_cancel_button_text))
                         }
                         Spacer(modifier = Modifier.width(16.dp))
-                        Button(onClick = { onDeleteClick() }, Modifier.weight(1f).height(36.dp)) {
+                        Button(
+                            onClick = { onDeleteClick() },
+                            Modifier
+                                .weight(1f)
+                                .height(buttonHeight)
+                        ) {
                             Text(stringResource(R.string.dialog_delete_button_text))
                         }
                     }
@@ -269,39 +280,78 @@ fun SearchField(
     modifier: Modifier = Modifier,
     onQueryChanged: (String) -> Unit
 ) {
-    var textState by remember {
+    var textState by rememberSaveable {
         mutableStateOf("")
     }
     val hint = stringResource(id = R.string.home_search_field_hint)
-    TextField(
+    BasicTextField(
         value = textState,
-        onValueChange = { text ->
-            textState = text
-            onQueryChanged(text)
+        onValueChange = { input ->
+            textState = input
+            onQueryChanged(input)
         },
-        placeholder = {
-            Text(hint)
-        },
-        shape = RoundedCornerShape(10.dp),
-        leadingIcon = {
-            Icon(
-                painter = painterResource(id = R.drawable.search),
-                contentDescription = null,
-                tint = Color.Gray
-            )
-        },
-        modifier = modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .padding(vertical = 0.dp),
+        modifier = modifier.height(textFieldHeight),
         singleLine = true,
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            errorIndicatorColor = Color.Transparent
-        )
+        keyboardOptions = KeyboardOptions.Default.copy(
+            autoCorrectEnabled = true,
+            showKeyboardOnFocus = true,
+            capitalization = KeyboardCapitalization.Words
+        ),
+        textStyle = Typography.bodyMedium,
+        decorationBox = { innerTextField ->
+            Box(
+                modifier = Modifier
+                    .background(Color.Transparent, RoundedCornerShape(20.dp))
+                    .border(2.dp, Color.Gray, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Row {
+                    Icon(
+                        painter = painterResource(id = R.drawable.search),
+                        contentDescription = null,
+                        tint = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (textState.isEmpty()) {
+                            Text(hint, style = searchHintStyle)
+                        }
+                        innerTextField()
+                    }
+                }
+            }
+        },
     )
+//    TextField(
+//        value = textState,
+//        onValueChange = { text ->
+//            textState = text
+//            onQueryChanged(text)
+//        },
+//        placeholder = {
+//            Text(hint)
+//        },
+//        shape = RoundedCornerShape(10.dp),
+//        leadingIcon = {
+//            Icon(
+//                painter = painterResource(id = R.drawable.search),
+//                contentDescription = null,
+//                tint = Color.Gray
+//            )
+//        },
+//        modifier = modifier
+//            .fillMaxWidth()
+//            .height(54.dp)
+//            .padding(vertical = 0.dp),
+//        singleLine = true,
+//        colors = TextFieldDefaults.colors(
+//            focusedIndicatorColor = Color.Transparent,
+//            unfocusedIndicatorColor = Color.Transparent,
+//            disabledIndicatorColor = Color.Transparent,
+//            errorIndicatorColor = Color.Transparent
+//        )
+//    )
 }
 
 @Composable

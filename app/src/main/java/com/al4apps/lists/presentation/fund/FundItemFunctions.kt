@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,7 +46,9 @@ import com.al4apps.lists.R
 import com.al4apps.lists.domain.Constants
 import com.al4apps.lists.domain.models.FundMemberModel
 import com.al4apps.lists.ui.theme.Typography
+import com.al4apps.lists.ui.theme.buttonHeight
 import com.al4apps.lists.ui.theme.greenText
+import com.al4apps.lists.ui.theme.textFieldHeight
 
 @Composable
 fun FundItemLayout(item: FundMemberModel, position: Int) {
@@ -213,21 +216,22 @@ fun EditFundItemLayout(
                 ) { commentText = it }
 
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            AddSpaceVer(24)
             if (member != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    Button(
+                    OutlinedButton(
                         onClick = { onCancelClick() },
                         modifier = Modifier
-                            .wrapContentWidth()
-                            .padding(top = 8.dp)
-                            .height(40.dp)
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .height(buttonHeight)
                     ) {
                         Text(stringResource(R.string.dialog_cancel_button_text))
                     }
+                    AddSpaceHor(16)
                     Button(
                         onClick = {
                             onSaveClick(
@@ -243,9 +247,9 @@ fun EditFundItemLayout(
                         },
                         enabled = isFormValid,
                         modifier = Modifier
-                            .wrapContentWidth()
-                            .padding(top = 8.dp)
-                            .height(40.dp)
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .height(buttonHeight)
                     ) {
                         Text(stringResource(R.string.dialog_save_button_text))
                     }
@@ -267,8 +271,7 @@ fun EditFundItemLayout(
                     enabled = isFormValid,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
-                        .height(40.dp)
+                        .height(buttonHeight)
                 ) {
                     Text(stringResource(R.string.add_new_item_button_text))
                 }
@@ -317,7 +320,7 @@ fun SimpleTextField(
     BasicTextField(
         value = text,
         onValueChange = { onValueChange(it) },
-        modifier = modifier,
+        modifier = modifier.height(textFieldHeight),
         singleLine = singleLine,
         keyboardOptions = keyboardOptions.copy(
             autoCorrectEnabled = true,
@@ -330,7 +333,8 @@ fun SimpleTextField(
                 modifier = Modifier
                     .background(Color.Transparent, RoundedCornerShape(20.dp))
                     .border(1.dp, Color.Gray, RoundedCornerShape(20.dp))
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.CenterStart,
             ) {
                 if (text.isEmpty()) {
                     Text(hint, style = textStyle, color = Color.Gray)
@@ -342,8 +346,13 @@ fun SimpleTextField(
 }
 
 @Composable
-fun AddSpace(dp: Int, modifier: Modifier = Modifier) {
+fun AddSpaceVer(dp: Int, modifier: Modifier = Modifier) {
     Spacer(modifier = modifier.height(dp.dp))
+}
+
+@Composable
+fun AddSpaceHor(dp: Int, modifier: Modifier = Modifier) {
+    Spacer(modifier = modifier.width(dp.dp))
 }
 
 fun String.toCents(): Long {

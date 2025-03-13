@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,10 +72,10 @@ import org.koin.androidx.compose.koinViewModel
 fun FundScreen(
     navController: NavController, listId: Int, viewModel: FundViewModel = koinViewModel()
 ) {
-    var showSettingsDialog by remember { mutableStateOf(false) }
-    var showEditMemberDialog by remember { mutableStateOf(false) }
-    var isCreatingNewFund by remember { mutableStateOf(false) }
-    var fadeBackground by remember { mutableStateOf(false) }
+    var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    var showEditMemberDialog by rememberSaveable { mutableStateOf(false) }
+    var isCreatingNewFund by rememberSaveable { mutableStateOf(false) }
+    var fadeBackground by rememberSaveable { mutableStateOf(false) }
 
     val list = viewModel.listModel.collectAsState()
 
@@ -338,7 +339,7 @@ fun FundSettingsDialog(
                             text = stringResource(R.string.new_fund_name_field_label),
                             style = Typography.bodyMedium
                         )
-                        AddSpace(4)
+                        AddSpaceVer(4)
                         SimpleTextField(
                             name,
                             hint = stringResource(R.string.new_fund_name_field_hint),
@@ -351,12 +352,12 @@ fun FundSettingsDialog(
                                 (isCreating && name.isNotBlank()) || name != fund.name
                                         || !sum.isEqualSum(fund.toRaise)
                         }
-                        AddSpace(16)
+                        AddSpaceVer(16)
                         Text(
                             text = stringResource(R.string.fund_settings_need_to_raise_text),
                             style = Typography.bodyMedium
                         )
-                        AddSpace(4)
+                        AddSpaceVer(4)
                         SimpleTextField(
                             text = sum, hint = "0", keyboardOptions = KeyboardOptions.Default.copy(
                                 keyboardType = KeyboardType.Decimal
@@ -368,7 +369,7 @@ fun FundSettingsDialog(
                                 (isCreating && name.isNotBlank()) || name != fund.name
                                         || !sum.isEqualSum(fund.toRaise)
                         }
-                        AddSpace(24)
+                        AddSpaceVer(24)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceAround
