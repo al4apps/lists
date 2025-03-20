@@ -20,18 +20,3 @@ data class FundDbModel(
         const val TIMESTAMP = "timestamp"
     }
 }
-
-@Entity(tableName = FundOptionsDb.TABLE_NAME)
-data class FundOptionsDb(
-    @PrimaryKey
-    @ColumnInfo(name = FUND_ID)
-    val fundId: Int,
-    @ColumnInfo(name = NEED_TO_DIVIDE)
-    val needToDivide: Boolean
-) {
-    companion object {
-        const val TABLE_NAME = "fund_options"
-        const val FUND_ID = "fund_id"
-        const val NEED_TO_DIVIDE = "need_to_divide"
-    }
-}

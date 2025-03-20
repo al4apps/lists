@@ -34,7 +34,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -57,13 +56,11 @@ import com.al4apps.lists.domain.Constants.NEW_LIST_ID
 import com.al4apps.lists.domain.models.EmptyFundItemModel
 import com.al4apps.lists.domain.models.FundMemberModel
 import com.al4apps.lists.domain.models.FundModel
-import com.al4apps.lists.domain.models.FundOptionsModel
 import com.al4apps.lists.presentation.home.AddItemFab
 import com.al4apps.lists.presentation.home.RaisingText
 import com.al4apps.lists.presentation.home.SumRaisedText
 import com.al4apps.lists.presentation.home.SumToRaiseText
 import com.al4apps.lists.presentation.home.raisedFraction
-import com.al4apps.lists.presentation.models.FundUi
 import com.al4apps.lists.ui.theme.Typography
 import com.al4apps.lists.ui.theme.fractionColor
 import org.koin.androidx.compose.koinViewModel
@@ -91,7 +88,7 @@ fun FundScreen(
 
     if (list.value != null || isCreatingNewFund) {
         FundSettingsDialog(
-            fundUi = list.value ?: generateEmptyFundUi(),
+            fund = list.value ?: generateEmptyFundUi(),
             showDialog = showSettingsDialog,
             isCreating = isCreatingNewFund,
             onDismiss = {
@@ -101,9 +98,9 @@ fun FundScreen(
                 showSettingsDialog = false
                 isCreatingNewFund = false
             },
-            onConfirm = { fundUi ->
-                if (isCreatingNewFund) viewModel.fetchNewFund(fundUi)
-                else viewModel.updateFundModel(fundUi)
+            onConfirm = { fundModel ->
+                if (isCreatingNewFund) viewModel.fetchNewFund(fundModel)
+                else viewModel.updateFundModel(fundModel)
                 showSettingsDialog = false
                 isCreatingNewFund = false
             }
@@ -129,15 +126,15 @@ fun FundScreen(
                 showEditMemberDialog = true
             }
         }, floatingActionButtonPosition = FabPosition.End, topBar = {
-            val title = list.value?.fundModel?.name
+            val title = list.value?.name
                 ?: if (isCreatingNewFund) stringResource(R.string.new_list_base_name)
                 else ""
             ListTopBar(title = title,
                 navController = navController,
                 onSettingsClick = { showSettingsDialog = true })
         }, content = { paddingValues ->
-            list.value?.let { fundUi ->
-                FundContent(paddingValues, viewModel, fundUi) {
+            list.value?.let { fundModel ->
+                FundContent(paddingValues, viewModel, fundModel) {
                     fadeBackground = it
                 }
             }
@@ -159,7 +156,7 @@ private fun Int.isNewList(): Boolean = this == NEW_LIST_ID
 fun FundContent(
     paddingValues: PaddingValues,
     viewModel: FundViewModel,
-    fund: FundUi,
+    fund: FundModel,
     onItemEdit: (showDialog: Boolean) -> Unit
 ) {
     val listItems = viewModel.items.collectAsState()
@@ -222,7 +219,7 @@ fun FundContent(
         }
         Spacer(modifier = Modifier.height(8.dp))
         // Info Row
-        FundState(fund.fundModel)
+        FundState(fund)
     }
 }
 
@@ -282,10 +279,10 @@ fun EditMemberDialog(
 
 @Composable
 fun FundSettingsDialog(
-    fundUi: FundUi,
+    fund: FundModel,
     showDialog: Boolean,
     isCreating: Boolean = false,
-    onConfirm: (fundUi: FundUi) -> Unit,
+    onConfirm: (model: FundModel) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (showDialog) {
@@ -295,15 +292,11 @@ fun FundSettingsDialog(
                 dismissOnClickOutside = !isCreating
             )
         ) {
-            val fund = fundUi.fundModel
-            val fundOptions = fundUi.fundOptions
             val focusRequester = remember { FocusRequester() }
             var name by remember { mutableStateOf(fund.name) }
             var sum by remember {
                 mutableStateOf(fund.toRaise?.toMoneyInTextFieldString() ?: "")
             }
-            val membersCount by remember { mutableIntStateOf(fundOptions.membersCount) }
-            val needToDivide by remember { mutableStateOf(fundOptions.needToDivide) }
             var isFormValid by remember {
                 mutableStateOf(
                     (isCreating && name.isNotBlank()) || name != fund.name
@@ -387,13 +380,7 @@ fun FundSettingsDialog(
                                         raised = fund.raised,
                                         timestamp = System.currentTimeMillis()
                                     )
-                                    val fundOptionsModel = FundOptionsModel(
-                                        fundId = fund.id,
-                                        membersCount = membersCount,
-                                        raisedSum = fund.raised,
-                                        needToDivide = needToDivide
-                                    )
-                                    onConfirm(FundUi(fundModel, fundOptionsModel))
+                                    onConfirm(fundModel)
                                 }, enabled = isFormValid
                             ) {
                                 Text(stringResource(R.string.dialog_save_button_text))
@@ -476,20 +463,12 @@ fun FundState(fund: FundModel) {
 }
 
 @Composable
-fun generateEmptyFundUi() = FundUi(
-    FundModel(
-        id = NEW_LIST_ID,
-        name = stringResource(R.string.new_list_base_name),
-        toRaise = null,
-        raised = 0L,
-        timestamp = System.currentTimeMillis()
-    ),
-    FundOptionsModel(
-        fundId = NEW_LIST_ID,
-        membersCount = 0,
-        raisedSum = 0,
-        needToDivide = false
-    )
+fun generateEmptyFundUi(): FundModel = FundModel(
+    id = NEW_LIST_ID,
+    name = stringResource(R.string.new_list_base_name),
+    toRaise = null,
+    raised = 0L,
+    timestamp = System.currentTimeMillis()
 )
 
 fun String.isEqualSum(sum: Long?): Boolean {

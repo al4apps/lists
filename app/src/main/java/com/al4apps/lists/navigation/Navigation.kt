@@ -7,8 +7,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.al4apps.lists.domain.Constants.NEW_LIST_ID
-import com.al4apps.lists.presentation.home.HomeScreen
 import com.al4apps.lists.presentation.fund.FundScreen
+import com.al4apps.lists.presentation.home.HomeScreen
 
 @Composable
 fun AppNavigation() {

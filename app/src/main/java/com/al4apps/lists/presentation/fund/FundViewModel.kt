@@ -4,19 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.al4apps.lists.domain.Constants.NEW_LIST_ID
 import com.al4apps.lists.domain.models.EmptyFundItemModel
-import com.al4apps.lists.domain.models.EmptyListModel
 import com.al4apps.lists.domain.models.FundMemberModel
 import com.al4apps.lists.domain.models.FundModel
 import com.al4apps.lists.domain.models.ListItemModel
 import com.al4apps.lists.domain.usecases.AddNewFundMemberUseCase
 import com.al4apps.lists.domain.usecases.AddNewFundUseCase
 import com.al4apps.lists.domain.usecases.GetFundMembersUseCase
-import com.al4apps.lists.domain.usecases.GetFundOptionsUseCase
 import com.al4apps.lists.domain.usecases.GetFundUseCase
 import com.al4apps.lists.domain.usecases.UpdateFundMemberUseCase
-import com.al4apps.lists.domain.usecases.UpdateFundOptionsUseCase
 import com.al4apps.lists.domain.usecases.UpdateFundUseCase
-import com.al4apps.lists.presentation.models.FundUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -32,13 +28,10 @@ open class FundViewModel(
     private val updateFundMemberUseCase: UpdateFundMemberUseCase,
     private val updateFundUseCase: UpdateFundUseCase,
     private val addNewFundUseCase: AddNewFundUseCase,
-    private val getFundOptionsUseCase: GetFundOptionsUseCase,
-    private val updateFundOptionsUseCase: UpdateFundOptionsUseCase
 ) : ViewModel() {
     private var fundId: Int = NEW_LIST_ID
-    private val emptyListModel = EmptyListModel()
 
-    private val _listModel = MutableStateFlow<FundUi?>(null)
+    private val _listModel = MutableStateFlow<FundModel?>(null)
     val listModel = _listModel.asStateFlow()
 
     private val _items = MutableStateFlow<List<ListItemModel>>(emptyList())
@@ -48,9 +41,8 @@ open class FundViewModel(
         fundId = id
         viewModelScope.launch {
             try {
-                val options = getFundOptionsUseCase.get(id)
                 val fund = getFundUseCase.get(id)
-                _listModel.value = FundUi(fund, options)
+                _listModel.value = fund
             } catch (e: Exception) {
                 Timber.d(e)
                 _listModel.value = null
@@ -58,11 +50,11 @@ open class FundViewModel(
         }
     }
 
-    fun updateFundModel(fundUi: FundUi) {
+    fun updateFundModel(fundModel: FundModel) {
         viewModelScope.launch {
             try {
-                updateFundUseCase.update(fundUi.fundModel, fundUi.fundOptions)
-                getFundInfo(fundUi.fundModel.id)
+                updateFundUseCase.update(fundModel)
+                getFundInfo(fundModel.id)
             } catch (t: Throwable) {
                 Timber.d(t)
             }
@@ -100,11 +92,10 @@ open class FundViewModel(
         }
     }
 
-    fun fetchNewFund(fund: FundUi) {
+    fun fetchNewFund(fund: FundModel) {
         viewModelScope.launch {
             try {
-                fundId = addNewFundUseCase.invoke(fund.fundModel)
-                updateFundOptionsUseCase.invoke(fund.fundOptions.copy(fundId = fundId))
+                fundId = addNewFundUseCase.invoke(fund)
                 getFundInfo(fundId)
                 getFundItems(fundId)
             } catch (t: Throwable) {
